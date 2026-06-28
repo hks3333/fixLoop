@@ -1,0 +1,58 @@
+/* checkout.css */
+.checkout-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: system-ui, sans-serif;
+}
+
+.product-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.product-image {
+  width: 80px;
+  height: 80px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.price {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 16px 0;
+}
+
+.button-wrapper {
+  position: relative;
+  z-index: 10; /* BUG TARGET: agents will change this to 0 */
+}
+
+.checkout-button {
+  width: 100%;
+  padding: 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+}
