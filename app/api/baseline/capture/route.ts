@@ -17,11 +17,13 @@ export async function POST() {
   (async () => {
     try {
       const result = await captureAndSaveBaseline();
+      console.log(`[Baseline Capture] Success: ${result.routes} routes captured`);
       store.updateFeedEvent(feedEvent.id, {
         status: 'clean',
         data: { message: `Captured ${result.routes} routes × ${result.viewports} viewports` },
       });
     } catch (err) {
+      console.error(`[Baseline Capture] FAILED:`, err);
       store.updateFeedEvent(feedEvent.id, {
         status: 'error',
         data: { error: String(err) },

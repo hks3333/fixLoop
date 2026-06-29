@@ -68,7 +68,11 @@ export async function screenshotRoute(
   url: string,
   viewportNames: ViewportName[] = ['mobile', 'desktop']
 ): Promise<{ screenshots: RouteScreenshots; consoleErrors: string[] }> {
-  const browser = await chromium.launch({ headless: true });
+  console.log(`[screenshotter] Launching browser for route ${url}...`);
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+  });
   const result: RouteScreenshots = {};
   const allConsoleErrors: string[] = [];
 
@@ -87,7 +91,11 @@ export async function screenshotSite(
   routes: Array<{ path: string; name: string }>,
   viewportNames: ViewportName[] = ['mobile', 'desktop']
 ): Promise<{ screenshots: SiteScreenshots; consoleErrors: { [route: string]: string[] } }> {
-  const browser = await chromium.launch({ headless: true });
+  console.log(`[screenshotter] screenshotSite: Launching browser for ${routes.length} routes...`);
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+  });
   const screenshots: SiteScreenshots = {};
   const consoleErrors: { [route: string]: string[] } = {};
 
