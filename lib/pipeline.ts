@@ -30,6 +30,10 @@ export async function runPipeline(params: {
 
   // ── Wait for Vercel deployment to be ready ──────────────────────────────
   emit('waiting_for_deployment', { url: previewUrl });
+  // Mandatory 60s sleep to let Vercel actually start building the NEW commit,
+  // otherwise we might hit the old commit's cached deployment which returns 200 OK.
+  await new Promise(r => setTimeout(r, 60000));
+  
   let isReady = false;
   for (let i = 0; i < 30; i++) {
     try {

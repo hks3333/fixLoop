@@ -57,7 +57,7 @@ function diffChunk(
   return {
     score,
     diffImageBase64: PNG.sync.write(diff).toString('base64'),
-    hasSignificantChange: score > 0.02, // 2% threshold
+    hasSignificantChange: score > 0.001, // 0.1% threshold to be highly sensitive
   };
 }
 

@@ -17,14 +17,14 @@ export async function runAgentA(params: {
   prDescription?: string; // optional PR intent context for GitHub App flow
 }): Promise<AgentAOutput> {
   const intentContext = params.prDescription
-    ? `\n\nPR context (intent declared by the author): "${params.prDescription}"\nIf a change clearly matches the declared intent, mark it as intentional in intentional_changes_detected. Only flag it as a regression if it is unintentional.`
-    : '';
+    ? `\n\nPR context (intent declared by the author): "${params.prDescription}"\nIf a change clearly matches the declared intent (e.g. changing button color to red), mark it as intentional in intentional_changes_detected. Any other difference, even if small or seemingly unrelated, MUST be flagged as a regression.`
+    : '\n\nAny visual difference, no matter how small, MUST be flagged as a regression.';
 
   return withRetry(() => callGemma<AgentAOutput>({
     systemPrompt: `You are a visual QA engineer specialising in UI regression detection.
 You will be given BEFORE (baseline) and AFTER (post-deploy) screenshots of a web app at two viewports.
 Your job is to identify any visual regressions — elements that are missing, hidden, shifted, broken, or have changed styling/color.
-Focus especially on interactive elements like buttons, links, and form fields. Look closely at the main call-to-action (\"Proceed to Checkout\" button): check if it is bright blue in the baseline but appears dimmed, darkened, greyed out, or covered by a semi-transparent dark overlay in the after-deploy screenshots.${intentContext}
+Focus especially on interactive elements like buttons, links, and form fields.${intentContext}
 
 You MUST return JSON only, conforming exactly to this structure:
 {
