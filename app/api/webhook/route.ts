@@ -92,10 +92,8 @@ export async function POST(req: NextRequest) {
         const report = await runPipeline({
           payload: webhookPayload,
           onProgress: (eventType, data) => {
-            store.pushFeedEvent({
+            store.updateFeedEvent(feedEvent.id, {
               type: eventType,
-              prNumber,
-              timestamp: new Date().toISOString(),
               data,
             });
           },
