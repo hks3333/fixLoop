@@ -1,8 +1,9 @@
-import OpenAI from 'openai';
+import Cerebras from '@cerebras/cerebras_cloud_sdk';
+import fs from 'fs';
+import path from 'path';
 
-const client = new OpenAI({
-  apiKey: process.env.CEREBRAS_API_KEY!,
-  baseURL: process.env.CEREBRAS_BASE_URL || 'https://api.cerebras.ai/v1',
+const client = new Cerebras({
+  apiKey: process.env.CEREBRAS_API_KEY,
 });
 
 const MODEL = 'gemma-4-31b';
@@ -16,20 +17,32 @@ export async function callGemma<T>(params: {
   const response = await client.chat.completions.create({
     model: MODEL,
     max_tokens: 1000,
-    response_format: {
-      type: 'json_schema',
-      json_schema: {
-        name: params.schemaName,
-        strict: true,
-        schema: params.schema,
-      },
-    },
     messages: [
       { role: 'system', content: params.systemPrompt },
       { role: 'user', content: params.userContent as any },
     ],
-  });
+  }) as any;
 
-  const text = response.choices[0].message.content!;
+  let text = response.choices[0].message.content || '{}';
+  
+  // Log request/response for debugging
+  const logPath = path.join(process.cwd(), 'llm_debug.txt');
+  const sanitizedUserContent = params.userContent.map(item => 
+    item.type === 'image_url' 
+      ? { type: 'image_url', image_url: { url: item.image_url.url.substring(0, 100) + '...' } }
+      : item
+  );
+  const logEntry = `
+========================================
+[${new Date().toISOString()}] Model Call to ${MODEL}
+System Prompt: ${params.systemPrompt}
+User Content: ${JSON.stringify(sanitizedUserContent, null, 2)}
+Response: ${text}
+========================================\n`;
+  fs.appendFileSync(logPath, logEntry, 'utf-8');
+
+  // Strip markdown code blocks if present
+  text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  
   return JSON.parse(text) as T;
 }

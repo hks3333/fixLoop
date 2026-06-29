@@ -18,10 +18,17 @@ export async function runAgentA(params: {
   return withRetry(() => callGemma<AgentAOutput>({
     systemPrompt: `You are a visual QA engineer specialising in UI regression detection.
 You will be given BEFORE (baseline) and AFTER (post-deploy) screenshots of a web app at two viewports.
-Your job is to identify any visual regressions — elements that are missing, hidden, shifted, or broken.
-Focus especially on interactive elements like buttons, links, and form fields.
-Be specific about which element is affected and at which viewport.
-Return JSON only. No explanation outside the JSON.`,
+Your job is to identify any visual regressions — elements that are missing, hidden, shifted, broken, or have changed styling/color.
+Focus especially on interactive elements like buttons, links, and form fields. Look closely at the main call-to-action ("Proceed to Checkout" button): check if it is bright blue in the baseline but appears dimmed, darkened, greyed out, or covered by a semi-transparent dark overlay in the after-deploy screenshots.
+
+You MUST return JSON only, conforming exactly to this structure:
+{
+  "regression_found": true or false,
+  "description": "description of the visual regression found",
+  "affected_element": "name of the affected element (e.g. .button-wrapper)",
+  "viewport": "desktop" or "mobile" or "both" or "none"
+}
+Do not add any wrapper keys like "regressions". Conform strictly to these keys. No explanation outside the JSON.`,
     userContent: [
       { type: 'text', text: 'BASELINE — desktop (1440px):' },
       { type: 'image_url', image_url: { url: `data:image/png;base64,${params.baselineDesktop}` } },
@@ -58,8 +65,18 @@ export async function runAgentB(params: {
     systemPrompt: `You are a CSS root cause analyst.
 You will be given a visual regression description and the CSS diff from the latest deploy.
 Your job is to identify the exact CSS property change that caused the regression.
-Be precise about file, line number, property name, old value, and new value.
-Return JSON only. No explanation outside the JSON.`,
+
+You MUST return JSON only, conforming exactly to this structure:
+{
+  "file": "path/to/css/file",
+  "line": 123,
+  "property": "name of css property",
+  "old_value": "old value of property",
+  "new_value": "new value of property",
+  "explanation": "explanation of root cause",
+  "confidence": 0.0 to 1.0
+}
+Conform strictly to these keys. No explanation outside the JSON.`,
     userContent: [
       { type: 'text', text: `Visual regression detected:\n${params.regressionDescription}\nAffected element: ${params.affectedElement}` },
       { type: 'text', text: `CSS diff from this deploy:\n\`\`\`diff\n${params.cssDiff}\n\`\`\`` },
@@ -92,8 +109,16 @@ export async function runAgentC(params: {
     systemPrompt: `You are a CSS engineer fixing a visual regression.
 You will be given the root cause analysis and the full CSS file.
 Generate the minimal patch to fix the regression — change only what is necessary.
-Return the exact old_code string (must match the file exactly) and new_code replacement.
-Return JSON only. No explanation outside the JSON.`,
+
+You MUST return JSON only, conforming exactly to this structure:
+{
+  "old_code": "exact lines of code to replace",
+  "new_code": "exact lines of replacement code",
+  "line": 123,
+  "explanation": "explanation of the fix",
+  "confidence": 0.0 to 1.0
+}
+Conform strictly to these keys. No explanation outside the JSON.`,
     userContent: [
       { type: 'text', text: `Root cause:\nFile: ${params.rootCause.file}\nLine: ${params.rootCause.line}\nProperty: ${params.rootCause.property}\nProblem value: ${params.rootCause.new_value}\nCorrect value: ${params.rootCause.old_value}\nExplanation: ${params.rootCause.explanation}` },
       { type: 'text', text: `Full CSS file:\n\`\`\`css\n${params.cssContent}\n\`\`\`` },
@@ -123,8 +148,14 @@ export async function runAgentD(params: {
   return withRetry(() => callGemma<AgentDOutput>({
     systemPrompt: `You are a visual QA engineer verifying that a CSS fix resolved a regression.
 You will be given the original BASELINE screenshot and the FIXED screenshot after a patch was applied.
-Confirm whether the regression described has been resolved.
-Return JSON only. No explanation outside the JSON.`,
+Confirm whether the regression described has been resolved. Check if the affected element (e.g., the "Proceed to Checkout" button) is no longer dimmed or covered by the dark overlay, and matches the baseline's bright blue style.
+
+You MUST return JSON only, conforming exactly to this structure:
+{
+  "regression_resolved": true or false,
+  "description": "description of verification result"
+}
+Conform strictly to these keys. No explanation outside the JSON.`,
     userContent: [
       { type: 'text', text: `The regression that was fixed: ${params.regressionDescription}` },
       { type: 'text', text: 'BASELINE (what it should look like):' },

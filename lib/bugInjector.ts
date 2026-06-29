@@ -5,11 +5,11 @@ const CSS_PATH = path.join(process.cwd(), 'styles', 'checkout.css');
 
 export const BUG = {
   file: 'styles/checkout.css',
-  line: 43,
+  line: 258,
   property: 'z-index',
   before: '10',
   after: '0',
-  description: 'z-index on .button-wrapper changed from 10 to 0, causing the checkout button to render behind the overlay and become unclickable.',
+  description: 'z-index on .button-wrapper changed from 10 to 0, causing the checkout button to render behind the dark overlay and become unclickable.',
 };
 
 export function injectBug(): void {

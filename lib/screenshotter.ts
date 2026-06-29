@@ -13,12 +13,18 @@ export async function takeScreenshots(): Promise<ScreenshotSet> {
   const desktopCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const desktopPage = await desktopCtx.newPage();
   await desktopPage.goto(`${APP_URL}/checkout-preview`, { waitUntil: 'networkidle' });
-  const desktopShot = await desktopPage.screenshot({ fullPage: false });
+  // Wait for CSS to load and render
+  await desktopPage.waitForLoadState('domcontentloaded');
+  await new Promise(resolve => setTimeout(resolve, 500));
+  const desktopShot = await desktopPage.screenshot({ fullPage: true });
 
   const mobileCtx = await browser.newContext({ viewport: { width: 375, height: 812 } });
   const mobilePage = await mobileCtx.newPage();
   await mobilePage.goto(`${APP_URL}/checkout-preview`, { waitUntil: 'networkidle' });
-  const mobileShot = await mobilePage.screenshot({ fullPage: false });
+  // Wait for CSS to load and render
+  await mobilePage.waitForLoadState('domcontentloaded');
+  await new Promise(resolve => setTimeout(resolve, 500));
+  const mobileShot = await mobilePage.screenshot({ fullPage: true });
 
   await browser.close();
 

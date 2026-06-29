@@ -158,22 +158,32 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="border-b bg-white px-6 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900">FixLoop</h1>
+    <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+      {/* Header */}
+      <div className="border-b bg-white px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between w-full max-w-none">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              FixLoop
+            </h1>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-semibold border border-indigo-100">
+              Cerebras AI UI-Healing
+            </span>
+          </div>
           <div className="flex items-center gap-4">
-            <div className="font-mono text-xl text-gray-700">{clock}</div>
+            <div className="font-mono text-xl font-semibold text-gray-700 bg-gray-50 px-4 py-1.5 rounded-lg border border-gray-200">
+              {clock}
+            </div>
             <button
               onClick={handleDeploy}
               disabled={isRunning}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors shadow-sm disabled:cursor-not-allowed"
             >
-              Deploy
+              Deploy Bug
             </button>
             <button
               onClick={handleReset}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2 rounded-lg transition-colors"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2.5 rounded-lg transition-colors"
             >
               Reset
             </button>
@@ -181,29 +191,44 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="flex max-w-7xl mx-auto p-6 gap-6">
-        <div className="w-2/5">
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Main Split Screen */}
+      <div className="flex flex-1 w-full overflow-hidden">
+        {/* Left Side: Site Preview */}
+        <div className="w-1/2 h-full flex flex-col border-r border-gray-200 bg-gray-50">
+          <div className="flex-shrink-0 bg-white px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-red-400"></span>
+              <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
+              <span className="w-3 h-3 rounded-full bg-green-400"></span>
+              <span className="text-xs text-gray-500 font-mono ml-2">Live Site Preview</span>
+            </div>
+            <span className="text-xs text-gray-400 font-mono">localhost:3000/checkout-preview</span>
+          </div>
+          <div className="flex-1 p-6 flex items-center justify-center overflow-auto bg-gray-100">
             <iframe
               ref={iframeRef}
               src="/checkout-preview"
-              className="w-full h-[600px]"
+              className="w-full h-full border border-gray-200 rounded-xl shadow-lg bg-white max-w-[480px] max-h-[850px]"
               title="Checkout Preview"
             />
           </div>
         </div>
 
-        <div className="w-3/5 space-y-6">
-          <div className="space-y-3">
-            <AgentCard name="Agent A" role="Visual QA" state={agents.A} outputSummary={getAgentSummary('A')} />
-            <AgentCard name="Agent B" role="Root Cause Analysis" state={agents.B} outputSummary={getAgentSummary('B')} />
-            <AgentCard name="Agent C" role="Fix Generation" state={agents.C} outputSummary={getAgentSummary('C')} />
-            <AgentCard name="Agent D" role="Verification" state={agents.D} outputSummary={getAgentSummary('D')} />
+        {/* Right Side: Agents & Pipeline Progress */}
+        <div className="w-1/2 h-full overflow-y-auto p-6 space-y-6 bg-white">
+          <div className="space-y-4">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">Agentic Repair Pipeline</h2>
+            <div className="space-y-3">
+              <AgentCard name="Agent A" role="Visual QA" state={agents.A} outputSummary={getAgentSummary('A')} />
+              <AgentCard name="Agent B" role="Root Cause Analysis" state={agents.B} outputSummary={getAgentSummary('B')} />
+              <AgentCard name="Agent C" role="Fix Generation" state={agents.C} outputSummary={getAgentSummary('C')} />
+              <AgentCard name="Agent D" role="Verification" state={agents.D} outputSummary={getAgentSummary('D')} />
+            </div>
           </div>
 
           {screenshots.baseline && screenshots.bugged && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h3 className="font-semibold text-sm text-gray-700 mb-3">Screenshot Comparison</h3>
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-sm text-gray-700 mb-3 font-mono">Screenshot Comparison</h3>
               <DiffViewer
                 baseline={screenshots.baseline.mobile}
                 bugged={screenshots.bugged.mobile}
@@ -213,8 +238,8 @@ export default function Home() {
           )}
 
           {patch && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h3 className="font-semibold text-sm text-gray-700 mb-3">Generated Patch</h3>
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-sm text-gray-700 mb-3 font-mono">Generated Patch</h3>
               <PatchViewer oldCode={patch.oldCode} newCode={patch.newCode} />
             </div>
           )}
@@ -231,16 +256,20 @@ export default function Home() {
           )}
 
           {result?.result === 'pass' && (
-            <div className="bg-green-50 border-2 border-green-400 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-green-800">✓ No Regression Detected</h3>
-              <p className="text-green-700 mt-2">{result.message}</p>
+            <div className="bg-green-50 border border-green-200 rounded-xl p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-green-800 flex items-center gap-2">
+                <span>✓</span> No Regression Detected
+              </h3>
+              <p className="text-green-700 mt-2 text-sm">{result.message}</p>
             </div>
           )}
 
           {result?.result === 'escalated' && (
-            <div className="bg-red-50 border-2 border-red-400 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-red-800">⚠ Escalated to Human</h3>
-              <p className="text-red-700 mt-2">{result.message}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-red-800 flex items-center gap-2">
+                <span>⚠</span> Escalated to Human
+              </h3>
+              <p className="text-red-700 mt-2 text-sm">{result.message}</p>
             </div>
           )}
         </div>

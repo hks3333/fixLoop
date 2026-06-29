@@ -6,7 +6,7 @@ export async function POST() {
 
   const diff = `--- a/${BUG.file}
 +++ b/${BUG.file}
-@@ -43,1 +43,1 @@
+@@ -258,1 +258,1 @@
 -  z-index: ${BUG.before};
 +  z-index: ${BUG.after};`;
 

@@ -27,21 +27,20 @@ A self-healing UI regression detection and repair system powered by Cerebras AI.
    Edit `.env.local`:
    ```
    CEREBRAS_API_KEY=your_actual_key_here
-   CEREBRAS_BASE_URL=https://api.cerebras.ai/v1
    NEXT_PUBLIC_APP_URL=http://localhost:3000
    ```
 
-3. **Save baseline screenshots:**
-   Make sure `styles/checkout.css` is in its clean (bug-free) state, then run:
+3. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+4. **Save baseline screenshots:**
+   In a separate terminal, make sure `styles/checkout.css` is in its clean (bug-free) state, then run:
    ```bash
    npx ts-node scripts/save-baseline.ts
    ```
    This saves baseline screenshots to `public/baseline/`.
-
-4. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
 
 5. **Open the app:**
    Navigate to [http://localhost:3000](http://localhost:3000)

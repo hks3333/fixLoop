@@ -1,6 +1,6 @@
-import { takeScreenshots } from '../lib/screenshotter';
-import fs from 'fs';
-import path from 'path';
+const { takeScreenshots } = require('../lib/screenshotter');
+const fs = require('fs');
+const path = require('path');
 
 async function main() {
   console.log('Taking baseline screenshots...');
