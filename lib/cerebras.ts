@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 const client = new Cerebras({
-  apiKey: process.env.CEREBRAS_API_KEY,
+  apiKey: process.env.CEREBRAS_API_KEY || 'missing_api_key_during_build',
 });
 
 const MODEL = 'gemma-4-31b';

@@ -1,278 +1,185 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import AgentCard from '@/components/AgentCard';
-import DiffViewer from '@/components/DiffViewer';
-import PatchViewer from '@/components/PatchViewer';
-import PRCard from '@/components/PRCard';
-import type { AgentState, SSEEvent, AgentAOutput, AgentBOutput, AgentCOutput, AgentDOutput } from '@/lib/types';
+import { useState, useEffect } from 'react';
+import LiveFeed from '@/components/LiveFeed';
+import PRReportCard from '@/components/PRReportCard';
+import GitHubComment from '@/components/GitHubComment';
+import type { PipelineReport } from '@/lib/types';
 
-export default function Home() {
-  const [agents, setAgents] = useState<Record<'A' | 'B' | 'C' | 'D', AgentState>>({
-    A: { status: 'idle' },
-    B: { status: 'idle' },
-    C: { status: 'idle' },
-    D: { status: 'idle' },
-  });
-  const [screenshots, setScreenshots] = useState<{
-    baseline?: { desktop: string; mobile: string };
-    bugged?: { desktop: string; mobile: string };
-    fixed?: { desktop: string; mobile: string };
-  }>({});
-  const [patch, setPatch] = useState<{
-    file: string;
-    line: number;
-    oldCode: string;
-    newCode: string;
-    explanation: string;
-  } | null>(null);
-  const [result, setResult] = useState<{
-    result: 'pass' | 'fixed' | 'escalated';
-    pr?: any;
-    message?: string;
-  } | null>(null);
-  const [loopStartTime, setLoopStartTime] = useState<number | null>(null);
-  const [loopEndTime, setLoopEndTime] = useState<number | null>(null);
-  const [diff, setDiff] = useState<string>('');
-  const [isRunning, setIsRunning] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  const [clock, setClock] = useState('00:00.000');
+export default function DashboardPage() {
+  const [selectedPR, setSelectedPR] = useState<number | null>(null);
+  const [report, setReport] = useState<PipelineReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [tab, setTab] = useState<'report' | 'comment'>('report');
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (loopStartTime && !loopEndTime) {
-      interval = setInterval(() => {
-        const elapsed = Date.now() - loopStartTime;
-        const minutes = Math.floor(elapsed / 60000);
-        const seconds = Math.floor((elapsed % 60000) / 1000);
-        const ms = elapsed % 1000;
-        setClock(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(ms).padStart(3, '0')}`);
-      }, 10);
-    }
-    return () => clearInterval(interval);
-  }, [loopStartTime, loopEndTime]);
+    if (!selectedPR) { setReport(null); return; }
 
-  const handleDeploy = async () => {
-    if (isRunning) return;
-    setIsRunning(true);
-    setLoopStartTime(Date.now());
-    setLoopEndTime(null);
-    setClock('00:00.000');
-    setAgents({ A: { status: 'idle' }, B: { status: 'idle' }, C: { status: 'idle' }, D: { status: 'idle' } });
-    setScreenshots({});
-    setPatch(null);
-    setResult(null);
-
-    const deployRes = await fetch('/api/deploy', { method: 'POST' });
-    const deployData = await deployRes.json();
-    setDiff(deployData.diff);
-
-    if (iframeRef.current) {
-      iframeRef.current.src = '/checkout-preview';
-    }
-
-    const es = new EventSource(`/api/run-loop?diff=${encodeURIComponent(deployData.diff)}`);
-
-    es.onmessage = (e) => {
-      const event: SSEEvent = JSON.parse(e.data);
-
-      switch (event.type) {
-        case 'agent_start':
-          setAgents(prev => ({
-            ...prev,
-            [event.agent!]: { status: 'running', startedAt: Date.now() }
-          }));
-          break;
-
-        case 'agent_done':
-          setAgents(prev => ({
-            ...prev,
-            [event.agent!]: {
-              ...prev[event.agent!],
-              status: 'done',
-              completedAt: Date.now(),
-              output: event.data,
-            }
-          }));
-          break;
-
-        case 'screenshot':
-          setScreenshots(prev => ({ ...prev, ...(event.data as any) }));
-          break;
-
-        case 'patch':
-          setPatch(event.data as any);
-          break;
-
-        case 'result':
-          setResult(event.data as any);
-          setLoopEndTime(Date.now());
-          setIsRunning(false);
-          es.close();
-          break;
-
-        case 'error':
-          console.error('Loop error:', event.data);
-          setIsRunning(false);
-          es.close();
-          break;
-      }
-    };
-  };
-
-  const handleReset = async () => {
-    await fetch('/api/reset', { method: 'POST' });
-    setAgents({ A: { status: 'idle' }, B: { status: 'idle' }, C: { status: 'idle' }, D: { status: 'idle' } });
-    setScreenshots({});
-    setPatch(null);
-    setResult(null);
-    setLoopStartTime(null);
-    setLoopEndTime(null);
-    setClock('00:00.000');
-    if (iframeRef.current) {
-      iframeRef.current.src = '/checkout-preview';
-    }
-  };
-
-  const getAgentSummary = (agent: 'A' | 'B' | 'C' | 'D') => {
-    const output = agents[agent].output;
-    if (!output) return '';
-
-    if (agent === 'A') {
-      const data = output as unknown as AgentAOutput;
-      return data.description;
-    }
-    if (agent === 'B') {
-      const data = output as unknown as AgentBOutput;
-      return `${data.file}:${data.line} — ${data.property}: ${data.new_value} → ${data.old_value}`;
-    }
-    if (agent === 'C') {
-      const data = output as unknown as AgentCOutput;
-      return `- ${data.old_code.trim()}\n+ ${data.new_code.trim()}`;
-    }
-    if (agent === 'D') {
-      const data = output as unknown as AgentDOutput;
-      return data.description + (data.regression_resolved ? ' ✓' : '');
-    }
-    return '';
-  };
+    setReportLoading(true);
+    fetch(`/api/report/${selectedPR}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { setReport(data); setReportLoading(false); })
+      .catch(() => setReportLoading(false));
+  }, [selectedPR]);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
-      {/* Header */}
-      <div className="border-b bg-white px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between w-full max-w-none">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              FixLoop
-            </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-semibold border border-indigo-100">
-              Cerebras AI UI-Healing
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="font-mono text-xl font-semibold text-gray-700 bg-gray-50 px-4 py-1.5 rounded-lg border border-gray-200">
-              {clock}
-            </div>
-            <button
-              onClick={handleDeploy}
-              disabled={isRunning}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors shadow-sm disabled:cursor-not-allowed"
-            >
-              Deploy Bug
-            </button>
-            <button
-              onClick={handleReset}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2.5 rounded-lg transition-colors"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
+    <div style={{
+      height: 'calc(100vh - 52px)',
+      display: 'flex',
+      overflow: 'hidden',
+    }}>
+      {/* Left — Live Feed (35%) */}
+      <div style={{
+        width: '35%',
+        minWidth: 300,
+        maxWidth: 420,
+        borderRight: '1px solid var(--border)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'var(--bg-surface)',
+      }}>
+        <LiveFeed onSelectPR={setSelectedPR} selectedPR={selectedPR} />
       </div>
 
-      {/* Main Split Screen */}
-      <div className="flex flex-1 w-full overflow-hidden">
-        {/* Left Side: Site Preview */}
-        <div className="w-1/2 h-full flex flex-col border-r border-gray-200 bg-gray-50">
-          <div className="flex-shrink-0 bg-white px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-red-400"></span>
-              <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
-              <span className="w-3 h-3 rounded-full bg-green-400"></span>
-              <span className="text-xs text-gray-500 font-mono ml-2">Live Site Preview</span>
+      {/* Right — PR Report (65%) */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {!selectedPR && (
+          <div style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: 48, textAlign: 'center',
+          }}>
+            {/* Hero */}
+            <div style={{
+              width: 80, height: 80, borderRadius: 20,
+              background: 'var(--gradient-brand)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 36, marginBottom: 24,
+              boxShadow: 'var(--shadow-glow)',
+            }}>🔁</div>
+            <h1 style={{
+              fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em',
+              margin: '0 0 12px', color: 'var(--text-primary)',
+            }}>
+              FixLoop Dashboard
+            </h1>
+            <p style={{ fontSize: 15, color: 'var(--text-secondary)', maxWidth: 400, lineHeight: 1.7, margin: '0 0 32px' }}>
+              Your autonomous deployment guardian. Install the GitHub App on a repository, then open a PR to see the 4-agent analysis pipeline run in real time.
+            </p>
+
+            {/* Steps */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16,
+              maxWidth: 640, width: '100%',
+            }}>
+              {[
+                { step: '1', icon: '⚙️', title: 'Create GitHub App', desc: 'Register at github.com/settings/apps/new with the webhook URL below' },
+                { step: '2', icon: '📷', title: 'Capture Baseline', desc: 'Set TARGET_PRODUCTION_URL and click Recapture Baseline in the Baselines tab' },
+                { step: '3', icon: '🚀', title: 'Open a PR', desc: 'Make a CSS change in your repo — FixLoop analyzes it and posts a report' },
+              ].map(s => (
+                <div key={s.step} className="card" style={{ padding: 20, textAlign: 'left' }}>
+                  <div style={{ fontSize: 24, marginBottom: 10 }}>{s.icon}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent-blue-bright)', marginBottom: 4 }}>STEP {s.step}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>{s.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s.desc}</div>
+                </div>
+              ))}
             </div>
-            <span className="text-xs text-gray-400 font-mono">localhost:3000/checkout-preview</span>
+
+            {/* Webhook URL box */}
+            <div style={{
+              marginTop: 32,
+              background: 'var(--bg-glass)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '14px 20px',
+              maxWidth: 480, width: '100%',
+              textAlign: 'left',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Webhook URL (paste in GitHub App settings)
+              </div>
+              <code style={{
+                fontFamily: 'var(--font-mono)', fontSize: 13,
+                color: 'var(--accent-blue-bright)',
+                wordBreak: 'break-all',
+              }}>
+                {typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/api/webhook
+              </code>
+            </div>
           </div>
-          <div className="flex-1 p-6 flex items-center justify-center overflow-auto bg-gray-100">
-            <iframe
-              ref={iframeRef}
-              src="/checkout-preview"
-              className="w-full h-full border border-gray-200 rounded-xl shadow-lg bg-white max-w-[480px] max-h-[850px]"
-              title="Checkout Preview"
-            />
-          </div>
-        </div>
+        )}
 
-        {/* Right Side: Agents & Pipeline Progress */}
-        <div className="w-1/2 h-full overflow-y-auto p-6 space-y-6 bg-white">
-          <div className="space-y-4">
-            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">Agentic Repair Pipeline</h2>
-            <div className="space-y-3">
-              <AgentCard name="Agent A" role="Visual QA" state={agents.A} outputSummary={getAgentSummary('A')} />
-              <AgentCard name="Agent B" role="Root Cause Analysis" state={agents.B} outputSummary={getAgentSummary('B')} />
-              <AgentCard name="Agent C" role="Fix Generation" state={agents.C} outputSummary={getAgentSummary('C')} />
-              <AgentCard name="Agent D" role="Verification" state={agents.D} outputSummary={getAgentSummary('D')} />
+        {selectedPR && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Tab bar */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '12px 20px',
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--bg-surface)',
+              flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginRight: 8 }}>
+                PR #{selectedPR}
+              </span>
+              {(['report', 'comment'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  style={{
+                    padding: '5px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid',
+                    borderColor: tab === t ? 'rgba(99,102,241,0.5)' : 'var(--border)',
+                    background: tab === t ? 'rgba(99,102,241,0.15)' : 'transparent',
+                    color: tab === t ? 'var(--accent-blue-bright)' : 'var(--text-secondary)',
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {t === 'report' ? '📊 Report' : '💬 GitHub Comment'}
+                </button>
+              ))}
+              <a
+                href={`/pr/${selectedPR}`}
+                style={{
+                  marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)',
+                  textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4,
+                }}
+              >
+                Full page ↗
+              </a>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+              {reportLoading && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="skeleton" style={{ height: 80 + i * 20, borderRadius: 12 }} />
+                  ))}
+                </div>
+              )}
+
+              {!reportLoading && !report && (
+                <div style={{
+                  textAlign: 'center', padding: 48, color: 'var(--text-muted)',
+                }}>
+                  <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                  <div>Pipeline is still running for PR #{selectedPR}…</div>
+                  <div style={{ fontSize: 12, marginTop: 8 }}>Refresh in a few seconds</div>
+                </div>
+              )}
+
+              {!reportLoading && report && (
+                <>
+                  {tab === 'report' && <PRReportCard report={report} />}
+                  {tab === 'comment' && <GitHubComment report={report} />}
+                </>
+              )}
             </div>
           </div>
-
-          {screenshots.baseline && screenshots.bugged && (
-            <div className="bg-gray-50 rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-sm text-gray-700 mb-3 font-mono">Screenshot Comparison</h3>
-              <DiffViewer
-                baseline={screenshots.baseline.mobile}
-                bugged={screenshots.bugged.mobile}
-                fixed={screenshots.fixed?.mobile}
-              />
-            </div>
-          )}
-
-          {patch && (
-            <div className="bg-gray-50 rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-sm text-gray-700 mb-3 font-mono">Generated Patch</h3>
-              <PatchViewer oldCode={patch.oldCode} newCode={patch.newCode} />
-            </div>
-          )}
-
-          {result?.result === 'fixed' && result.pr && loopEndTime && loopStartTime && (
-            <PRCard
-              title={result.pr.title}
-              file={result.pr.file}
-              oldCode={result.pr.oldCode}
-              newCode={result.pr.newCode}
-              explanation={result.pr.explanation}
-              durationSeconds={(loopEndTime - loopStartTime) / 1000}
-            />
-          )}
-
-          {result?.result === 'pass' && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-green-800 flex items-center gap-2">
-                <span>✓</span> No Regression Detected
-              </h3>
-              <p className="text-green-700 mt-2 text-sm">{result.message}</p>
-            </div>
-          )}
-
-          {result?.result === 'escalated' && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-red-800 flex items-center gap-2">
-                <span>⚠</span> Escalated to Human
-              </h3>
-              <p className="text-red-700 mt-2 text-sm">{result.message}</p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

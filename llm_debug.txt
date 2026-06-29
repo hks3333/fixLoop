@@ -1,0 +1,209 @@
+
+========================================
+[2026-06-29T02:26:15.621Z] Model Call to gemma-4-31b
+System Prompt: You are a visual QA engineer specialising in UI regression detection.
+You will be given BEFORE (baseline) and AFTER (post-deploy) screenshots of a web app at two viewports.
+Your job is to identify any visual regressions — elements that are missing, hidden, shifted, broken, or have changed styling/color.
+Focus especially on interactive elements like buttons, links, and form fields. Look closely at the main call-to-action ("Proceed to Checkout" button): check if it is bright blue in the baseline but appears dimmed, darkened, greyed out, or covered by a semi-transparent dark overlay in the after-deploy screenshots.
+
+You MUST return JSON only, conforming exactly to this structure:
+{
+  "regression_found": true or false,
+  "description": "description of the visual regression found",
+  "affected_element": "name of the affected element (e.g. .button-wrapper)",
+  "viewport": "desktop" or "mobile" or "both" or "none"
+}
+Do not add any wrapper keys like "regressions". Conform strictly to these keys. No explanation outside the JSON.
+User Content: [
+  {
+    "type": "text",
+    "text": "BASELINE — desktop (1440px):"
+  },
+  {
+    "type": "image_url",
+    "image_url": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABaAAAAOyCAIAAAAKDOU1AAAQAElEQVR4nOzdB2BT5d7H8SdtuvcEyl..."
+    }
+  },
+  {
+    "type": "text",
+    "text": "BASELINE — mobile (375px):"
+  },
+  {
+    "type": "image_url",
+    "image_url": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXcAAAPbCAIAAAAo41wVAAAQAElEQVR4nOydBWAURxfH55KLuycEC4..."
+    }
+  },
+  {
+    "type": "text",
+    "text": "AFTER DEPLOY — desktop (1440px):"
+  },
+  {
+    "type": "image_url",
+    "image_url": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABaAAAAOyCAIAAAAKDOU1AAAQAElEQVR4nOzdB2BT5d7H8SdtuvcEyl..."
+    }
+  },
+  {
+    "type": "text",
+    "text": "AFTER DEPLOY — mobile (375px):"
+  },
+  {
+    "type": "image_url",
+    "image_url": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXcAAAPbCAIAAAAo41wVAAAQAElEQVR4nOydBWAURxfH55KLuycEC4..."
+    }
+  },
+  {
+    "type": "text",
+    "text": "Identify any visual regressions between baseline and after-deploy."
+  }
+]
+Response: ```json
+{
+  "regression_found": true,
+  "description": "The 'Proceed to Checkout' button has changed from a bright blue to a darkened/dimmed navy blue color, indicating a potential disabled state or styling regression.",
+  "affected_element": "Proceed to Checkout button",
+  "viewport": "both"
+}
+```
+========================================
+
+========================================
+[2026-06-29T02:26:16.103Z] Model Call to gemma-4-31b
+System Prompt: You are a CSS root cause analyst.
+You will be given a visual regression description and the CSS diff from the latest deploy.
+Your job is to identify the exact CSS property change that caused the regression.
+
+You MUST return JSON only, conforming exactly to this structure:
+{
+  "file": "path/to/css/file",
+  "line": 123,
+  "property": "name of css property",
+  "old_value": "old value of property",
+  "new_value": "new value of property",
+  "explanation": "explanation of root cause",
+  "confidence": 0.0 to 1.0
+}
+Conform strictly to these keys. No explanation outside the JSON.
+User Content: [
+  {
+    "type": "text",
+    "text": "Visual regression detected:\nThe 'Proceed to Checkout' button has changed from a bright blue to a darkened/dimmed navy blue color, indicating a potential disabled state or styling regression.\nAffected element: Proceed to Checkout button"
+  },
+  {
+    "type": "text",
+    "text": "CSS diff from this deploy:\n```diff\n--- a/styles/checkout.css\n+++ b/styles/checkout.css\n@@ -258,1 +258,1 @@\n-  z-index: 10;\n+  z-index: 0;\n```"
+  },
+  {
+    "type": "text",
+    "text": "Full current CSS file content:\n```css\n/* checkout.css */\n.checkout-container {\n  max-width: 480px;\n  margin: 0 auto;\n  padding: 24px;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  background: #ffffff;\n  border-radius: 16px;\n  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);\n}\n\n.header {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-bottom: 24px;\n  padding-bottom: 16px;\n  border-bottom: 2px solid #f3f4f6;\n}\n\n.cart-title {\n  font-size: 24px;\n  font-weight: 700;\n  color: #111827;\n  margin: 0;\n}\n\n.item-count {\n  font-size: 14px;\n  color: #6b7280;\n  font-weight: 500;\n}\n\n.product-card {\n  display: flex;\n  gap: 16px;\n  padding: 20px;\n  border: 1px solid #e5e7eb;\n  border-radius: 12px;\n  margin-bottom: 16px;\n  background: #ffffff;\n  transition: box-shadow 0.2s ease;\n  position: relative;\n}\n\n.product-card:hover {\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);\n}\n\n.product-image {\n  width: 100px;\n  height: 100px;\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  border-radius: 12px;\n  flex-shrink: 0;\n  position: relative;\n  overflow: hidden;\n}\n\n.product-badge {\n  position: absolute;\n  top: 8px;\n  left: 8px;\n  background: #ef4444;\n  color: white;\n  font-size: 10px;\n  font-weight: 700;\n  padding: 4px 8px;\n  border-radius: 4px;\n  text-transform: uppercase;\n}\n\n.product-details {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.product-name {\n  font-weight: 600;\n  font-size: 16px;\n  color: #111827;\n  line-height: 1.3;\n}\n\n.product-variant {\n  font-size: 13px;\n  color: #6b7280;\n}\n\n.quantity-selector {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 4px;\n}\n\n.qty-btn {\n  width: 28px;\n  height: 28px;\n  border: 1px solid #e5e7eb;\n  background: white;\n  border-radius: 6px;\n  cursor: pointer;\n  font-size: 16px;\n  font-weight: 600;\n  color: #374151;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: background 0.15s ease;\n}\n\n.qty-btn:hover {\n  background: #f3f4f6;\n}\n\n.qty-value {\n  font-size: 14px;\n  font-weight: 600;\n  color: #111827;\n  min-width: 20px;\n  text-align: center;\n}\n\n.price-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 4px;\n}\n\n.original-price {\n  font-size: 14px;\n  color: #9ca3af;\n  text-decoration: line-through;\n}\n\n.current-price {\n  font-size: 18px;\n  font-weight: 700;\n  color: #111827;\n}\n\n.remove-btn {\n  position: absolute;\n  top: 12px;\n  right: 12px;\n  width: 28px;\n  height: 28px;\n  border: none;\n  background: transparent;\n  color: #9ca3af;\n  font-size: 20px;\n  cursor: pointer;\n  border-radius: 6px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.15s ease;\n}\n\n.remove-btn:hover {\n  background: #fef2f2;\n  color: #ef4444;\n}\n\n.promo-section {\n  margin-bottom: 20px;\n}\n\n.promo-input {\n  display: flex;\n  gap: 8px;\n}\n\n.promo-field {\n  flex: 1;\n  padding: 12px 16px;\n  border: 1px solid #e5e7eb;\n  border-radius: 8px;\n  font-size: 14px;\n  outline: none;\n  transition: border-color 0.15s ease;\n}\n\n.promo-field:focus {\n  border-color: #2563eb;\n}\n\n.apply-btn {\n  padding: 12px 20px;\n  background: #111827;\n  color: white;\n  border: none;\n  border-radius: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  cursor: pointer;\n  transition: background 0.15s ease;\n}\n\n.apply-btn:hover {\n  background: #374151;\n}\n\n.summary-section {\n  background: #f9fafb;\n  border-radius: 12px;\n  padding: 20px;\n  margin-bottom: 24px;\n}\n\n.summary-row {\n  display: flex;\n  justify-content: space-between;\n  margin-bottom: 12px;\n  font-size: 14px;\n}\n\n.summary-row:last-child {\n  margin-bottom: 0;\n}\n\n.summary-label {\n  color: #6b7280;\n}\n\n.summary-value {\n  font-weight: 600;\n  color: #111827;\n}\n\n.summary-row.discount .summary-value {\n  color: #10b981;\n}\n\n.summary-row.total {\n  padding-top: 12px;\n  border-top: 1px solid #e5e7eb;\n  margin-top: 12px;\n}\n\n.summary-row.total .summary-label {\n  font-weight: 600;\n  font-size: 16px;\n  color: #111827;\n}\n\n.summary-row.total .summary-value {\n  font-size: 20px;\n  color: #2563eb;\n}\n\n.button-container-outer {\n  position: relative;\n  margin-bottom: 20px;\n}\n\n.button-wrapper {\n  position: relative;\n  z-index: 0;\n}\n\n.checkout-button {\n  width: 100%;\n  padding: 18px 24px;\n  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);\n  color: white;\n  border: none;\n  border-radius: 12px;\n  font-size: 16px;\n  font-weight: 700;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  transition: transform 0.15s ease, box-shadow 0.15s ease;\n  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);\n}\n\n.checkout-button:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);\n}\n\n.checkout-button:active {\n  transform: translateY(0);\n}\n\n.btn-text {\n  flex: 1;\n  text-align: center;\n}\n\n.btn-arrow {\n  font-size: 20px;\n}\n\n.overlay {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  z-index: 5;\n  background: rgba(15, 23, 42, 0.5);\n  border-radius: 12px;\n}\n\n.trust-badges {\n  display: flex;\n  justify-content: space-around;\n  padding-top: 16px;\n  border-top: 1px solid #f3f4f6;\n}\n\n.trust-item {\n  font-size: 12px;\n  color: #6b7280;\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n\n```"
+  },
+  {
+    "type": "text",
+    "text": "Identify the exact CSS change that caused this regression."
+  }
+]
+Response: ```json
+{
+  "file": "styles/checkout.css",
+  "line": 258,
+  "property": "z-index",
+  "old_value": "10",
+  "new_value": "0",
+  "explanation": "The .button-wrapper previously had a z-index of 10, placing it above the .overlay (z-index: 5). Changing the z-index to 0 places the button behind the .overlay, which has a semi-transparent dark background (rgba(15, 23, 42, 0.5)), resulting in the 'darkened/dimmed' appearance of the button.",
+  "confidence": 1.0
+}
+```
+========================================
+
+========================================
+[2026-06-29T02:26:16.540Z] Model Call to gemma-4-31b
+System Prompt: You are a CSS engineer fixing a visual regression.
+You will be given the root cause analysis and the full CSS file.
+Generate the minimal patch to fix the regression — change only what is necessary.
+
+You MUST return JSON only, conforming exactly to this structure:
+{
+  "old_code": "exact lines of code to replace",
+  "new_code": "exact lines of replacement code",
+  "line": 123,
+  "explanation": "explanation of the fix",
+  "confidence": 0.0 to 1.0
+}
+Conform strictly to these keys. No explanation outside the JSON.
+User Content: [
+  {
+    "type": "text",
+    "text": "Root cause:\nFile: styles/checkout.css\nLine: 258\nProperty: z-index\nProblem value: 0\nCorrect value: 10\nExplanation: The .button-wrapper previously had a z-index of 10, placing it above the .overlay (z-index: 5). Changing the z-index to 0 places the button behind the .overlay, which has a semi-transparent dark background (rgba(15, 23, 42, 0.5)), resulting in the 'darkened/dimmed' appearance of the button."
+  },
+  {
+    "type": "text",
+    "text": "Full CSS file:\n```css\n/* checkout.css */\n.checkout-container {\n  max-width: 480px;\n  margin: 0 auto;\n  padding: 24px;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n  background: #ffffff;\n  border-radius: 16px;\n  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);\n}\n\n.header {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-bottom: 24px;\n  padding-bottom: 16px;\n  border-bottom: 2px solid #f3f4f6;\n}\n\n.cart-title {\n  font-size: 24px;\n  font-weight: 700;\n  color: #111827;\n  margin: 0;\n}\n\n.item-count {\n  font-size: 14px;\n  color: #6b7280;\n  font-weight: 500;\n}\n\n.product-card {\n  display: flex;\n  gap: 16px;\n  padding: 20px;\n  border: 1px solid #e5e7eb;\n  border-radius: 12px;\n  margin-bottom: 16px;\n  background: #ffffff;\n  transition: box-shadow 0.2s ease;\n  position: relative;\n}\n\n.product-card:hover {\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);\n}\n\n.product-image {\n  width: 100px;\n  height: 100px;\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  border-radius: 12px;\n  flex-shrink: 0;\n  position: relative;\n  overflow: hidden;\n}\n\n.product-badge {\n  position: absolute;\n  top: 8px;\n  left: 8px;\n  background: #ef4444;\n  color: white;\n  font-size: 10px;\n  font-weight: 700;\n  padding: 4px 8px;\n  border-radius: 4px;\n  text-transform: uppercase;\n}\n\n.product-details {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  gap: 8px;\n}\n\n.product-name {\n  font-weight: 600;\n  font-size: 16px;\n  color: #111827;\n  line-height: 1.3;\n}\n\n.product-variant {\n  font-size: 13px;\n  color: #6b7280;\n}\n\n.quantity-selector {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 4px;\n}\n\n.qty-btn {\n  width: 28px;\n  height: 28px;\n  border: 1px solid #e5e7eb;\n  background: white;\n  border-radius: 6px;\n  cursor: pointer;\n  font-size: 16px;\n  font-weight: 600;\n  color: #374151;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: background 0.15s ease;\n}\n\n.qty-btn:hover {\n  background: #f3f4f6;\n}\n\n.qty-value {\n  font-size: 14px;\n  font-weight: 600;\n  color: #111827;\n  min-width: 20px;\n  text-align: center;\n}\n\n.price-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 4px;\n}\n\n.original-price {\n  font-size: 14px;\n  color: #9ca3af;\n  text-decoration: line-through;\n}\n\n.current-price {\n  font-size: 18px;\n  font-weight: 700;\n  color: #111827;\n}\n\n.remove-btn {\n  position: absolute;\n  top: 12px;\n  right: 12px;\n  width: 28px;\n  height: 28px;\n  border: none;\n  background: transparent;\n  color: #9ca3af;\n  font-size: 20px;\n  cursor: pointer;\n  border-radius: 6px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.15s ease;\n}\n\n.remove-btn:hover {\n  background: #fef2f2;\n  color: #ef4444;\n}\n\n.promo-section {\n  margin-bottom: 20px;\n}\n\n.promo-input {\n  display: flex;\n  gap: 8px;\n}\n\n.promo-field {\n  flex: 1;\n  padding: 12px 16px;\n  border: 1px solid #e5e7eb;\n  border-radius: 8px;\n  font-size: 14px;\n  outline: none;\n  transition: border-color 0.15s ease;\n}\n\n.promo-field:focus {\n  border-color: #2563eb;\n}\n\n.apply-btn {\n  padding: 12px 20px;\n  background: #111827;\n  color: white;\n  border: none;\n  border-radius: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  cursor: pointer;\n  transition: background 0.15s ease;\n}\n\n.apply-btn:hover {\n  background: #374151;\n}\n\n.summary-section {\n  background: #f9fafb;\n  border-radius: 12px;\n  padding: 20px;\n  margin-bottom: 24px;\n}\n\n.summary-row {\n  display: flex;\n  justify-content: space-between;\n  margin-bottom: 12px;\n  font-size: 14px;\n}\n\n.summary-row:last-child {\n  margin-bottom: 0;\n}\n\n.summary-label {\n  color: #6b7280;\n}\n\n.summary-value {\n  font-weight: 600;\n  color: #111827;\n}\n\n.summary-row.discount .summary-value {\n  color: #10b981;\n}\n\n.summary-row.total {\n  padding-top: 12px;\n  border-top: 1px solid #e5e7eb;\n  margin-top: 12px;\n}\n\n.summary-row.total .summary-label {\n  font-weight: 600;\n  font-size: 16px;\n  color: #111827;\n}\n\n.summary-row.total .summary-value {\n  font-size: 20px;\n  color: #2563eb;\n}\n\n.button-container-outer {\n  position: relative;\n  margin-bottom: 20px;\n}\n\n.button-wrapper {\n  position: relative;\n  z-index: 0;\n}\n\n.checkout-button {\n  width: 100%;\n  padding: 18px 24px;\n  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);\n  color: white;\n  border: none;\n  border-radius: 12px;\n  font-size: 16px;\n  font-weight: 700;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  transition: transform 0.15s ease, box-shadow 0.15s ease;\n  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);\n}\n\n.checkout-button:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);\n}\n\n.checkout-button:active {\n  transform: translateY(0);\n}\n\n.btn-text {\n  flex: 1;\n  text-align: center;\n}\n\n.btn-arrow {\n  font-size: 20px;\n}\n\n.overlay {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  z-index: 5;\n  background: rgba(15, 23, 42, 0.5);\n  border-radius: 12px;\n}\n\n.trust-badges {\n  display: flex;\n  justify-content: space-around;\n  padding-top: 16px;\n  border-top: 1px solid #f3f4f6;\n}\n\n.trust-item {\n  font-size: 12px;\n  color: #6b7280;\n  display: flex;\n  align-items: center;\n  gap: 4px;\n}\n\n```"
+  },
+  {
+    "type": "text",
+    "text": "Generate the minimal CSS patch to fix this regression."
+  }
+]
+Response: ```json
+{
+  "old_code": "  z-index: 0;",
+  "new_code": "  z-index: 10;",
+  "line": 258,
+  "explanation": "Restored z-index of .button-wrapper to 10 to ensure it remains above the .overlay (z-index: 5), preventing the button from appearing dimmed.",
+  "confidence": 1.0
+}
+```
+========================================
+
+========================================
+[2026-06-29T02:26:22.000Z] Model Call to gemma-4-31b
+System Prompt: You are a visual QA engineer verifying that a CSS fix resolved a regression.
+You will be given the original BASELINE screenshot and the FIXED screenshot after a patch was applied.
+Confirm whether the regression described has been resolved. Check if the affected element (e.g., the "Proceed to Checkout" button) is no longer dimmed or covered by the dark overlay, and matches the baseline's bright blue style.
+
+You MUST return JSON only, conforming exactly to this structure:
+{
+  "regression_resolved": true or false,
+  "description": "description of verification result"
+}
+Conform strictly to these keys. No explanation outside the JSON.
+User Content: [
+  {
+    "type": "text",
+    "text": "The regression that was fixed: The 'Proceed to Checkout' button has changed from a bright blue to a darkened/dimmed navy blue color, indicating a potential disabled state or styling regression."
+  },
+  {
+    "type": "text",
+    "text": "BASELINE (what it should look like):"
+  },
+  {
+    "type": "image_url",
+    "image_url": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXcAAAPbCAIAAAAo41wVAAAQAElEQVR4nOydBWAURxfH55KLuycEC4..."
+    }
+  },
+  {
+    "type": "text",
+    "text": "FIXED (after patch was applied):"
+  },
+  {
+    "type": "image_url",
+    "image_url": {
+      "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXcAAAPbCAIAAAAo41wVAAAQAElEQVR4nOydBWAURxfH55KLuycEC4..."
+    }
+  },
+  {
+    "type": "text",
+    "text": "Does the fixed screenshot match the baseline? Is the regression resolved?"
+  }
+]
+Response: ```json
+{
+  "regression_resolved": true,
+  "description": "The 'Proceed to Checkout' button in the FIXED screenshot matches the bright blue color of the BASELINE screenshot, confirming that the dimming/darkened color regression has been resolved."
+}
+```
+========================================

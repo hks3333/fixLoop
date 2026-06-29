@@ -14,13 +14,13 @@ export const BUG = {
 
 export function injectBug(): void {
   let css = fs.readFileSync(CSS_PATH, 'utf-8');
-  css = css.replace('z-index: 10; /* BUG TARGET: agents will change this to 0 */', 'z-index: 0; /* INJECTED BUG */');
+  css = css.replace('z-index: 10;', 'z-index: 0;');
   fs.writeFileSync(CSS_PATH, css, 'utf-8');
 }
 
 export function restoreBug(): void {
   let css = fs.readFileSync(CSS_PATH, 'utf-8');
-  css = css.replace('z-index: 0; /* INJECTED BUG */', 'z-index: 10; /* BUG TARGET: agents will change this to 0 */');
+  css = css.replace('z-index: 0;', 'z-index: 10;');
   fs.writeFileSync(CSS_PATH, css, 'utf-8');
 }
 

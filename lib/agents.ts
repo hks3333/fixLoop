@@ -14,21 +14,27 @@ export async function runAgentA(params: {
   baselineMobile: string;
   buggedDesktop: string;
   buggedMobile: string;
+  prDescription?: string; // optional PR intent context for GitHub App flow
 }): Promise<AgentAOutput> {
+  const intentContext = params.prDescription
+    ? `\n\nPR context (intent declared by the author): "${params.prDescription}"\nIf a change clearly matches the declared intent, mark it as intentional in intentional_changes_detected. Only flag it as a regression if it is unintentional.`
+    : '';
+
   return withRetry(() => callGemma<AgentAOutput>({
     systemPrompt: `You are a visual QA engineer specialising in UI regression detection.
 You will be given BEFORE (baseline) and AFTER (post-deploy) screenshots of a web app at two viewports.
 Your job is to identify any visual regressions — elements that are missing, hidden, shifted, broken, or have changed styling/color.
-Focus especially on interactive elements like buttons, links, and form fields. Look closely at the main call-to-action ("Proceed to Checkout" button): check if it is bright blue in the baseline but appears dimmed, darkened, greyed out, or covered by a semi-transparent dark overlay in the after-deploy screenshots.
+Focus especially on interactive elements like buttons, links, and form fields. Look closely at the main call-to-action (\"Proceed to Checkout\" button): check if it is bright blue in the baseline but appears dimmed, darkened, greyed out, or covered by a semi-transparent dark overlay in the after-deploy screenshots.${intentContext}
 
 You MUST return JSON only, conforming exactly to this structure:
 {
   "regression_found": true or false,
   "description": "description of the visual regression found",
   "affected_element": "name of the affected element (e.g. .button-wrapper)",
-  "viewport": "desktop" or "mobile" or "both" or "none"
+  "viewport": "desktop" or "mobile" or "both" or "none",
+  "intentional_changes_detected": ["list of intentional changes detected based on PR context, or empty array"]
 }
-Do not add any wrapper keys like "regressions". Conform strictly to these keys. No explanation outside the JSON.`,
+Do not add any wrapper keys. Conform strictly to these keys. No explanation outside the JSON.`,
     userContent: [
       { type: 'text', text: 'BASELINE — desktop (1440px):' },
       { type: 'image_url', image_url: { url: `data:image/png;base64,${params.baselineDesktop}` } },
@@ -48,6 +54,7 @@ Do not add any wrapper keys like "regressions". Conform strictly to these keys. 
         description: { type: 'string' },
         affected_element: { type: 'string' },
         viewport: { type: 'string', enum: ['desktop', 'mobile', 'both', 'none'] },
+        intentional_changes_detected: { type: 'array', items: { type: 'string' } },
       },
       required: ['regression_found', 'description', 'affected_element', 'viewport'],
       additionalProperties: false,
