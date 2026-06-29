@@ -28,6 +28,29 @@ export async function runPipeline(params: {
 
   emit('pipeline_start', { prNumber, branch, previewUrl });
 
+  // ── Wait for Vercel deployment to be ready ──────────────────────────────
+  emit('waiting_for_deployment', { url: previewUrl });
+  let isReady = false;
+  for (let i = 0; i < 30; i++) {
+    try {
+      const res = await fetch(previewUrl);
+      const text = await res.text();
+      // Vercel returns 404 with specific text if not ready, or a 200 with "deployment not found"
+      if (res.ok && !text.includes('DEPLOYMENT_NOT_FOUND') && !text.includes('404: NOT_FOUND')) {
+        isReady = true;
+        break;
+      }
+    } catch (e) {
+      // ignore fetch errors and keep polling
+    }
+    await new Promise(r => setTimeout(r, 10000)); // wait 10s
+  }
+
+  if (!isReady) {
+    emit('screenshotter_error', { error: 'Deployment URL never became ready after 5 minutes.' });
+    throw new Error(`Deployment URL ${previewUrl} timed out.`);
+  }
+
   // ── Screenshot preview deployment ─────────────────────────────────────────
   emit('screenshotting', { url: previewUrl });
   let screenshots: Awaited<ReturnType<typeof screenshotSite>>['screenshots'];
