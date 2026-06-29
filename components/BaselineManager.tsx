@@ -143,18 +143,49 @@ export default function BaselineManager() {
           {routes.flatMap(route =>
             Object.entries(meta[route]).map(([viewport, info]) => (
               <div key={`${route}-${viewport}`} className="card" style={{ overflow: 'hidden' }}>
-                {/* Placeholder image area */}
                 <div style={{
                   height: 160,
                   background: 'var(--bg-elevated)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexDirection: 'column', gap: 8,
                   borderBottom: '1px solid var(--border)',
+                  position: 'relative'
                 }}>
-                  <div style={{ fontSize: 32 }}>
-                    {viewport === 'mobile' ? '📱' : viewport === 'tablet' ? '💻' : '🖥'}
+                  <img 
+                    src={`/api/baseline/image?route=${encodeURIComponent(route)}&viewport=${viewport}&chunkIndex=0`}
+                    alt={`${route} ${viewport} preview`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'top'
+                    }}
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextElementSibling) {
+                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                      }
+                    }}
+                  />
+                  {/* Fallback placeholder (hidden by default unless img fails) */}
+                  <div style={{
+                    display: 'none', flexDirection: 'column', alignItems: 'center', gap: 8
+                  }}>
+                    <div style={{ fontSize: 32 }}>
+                      {viewport === 'mobile' ? '📱' : viewport === 'tablet' ? '💻' : '🖥'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      {info.chunkCount} chunk{info.chunkCount !== 1 ? 's' : ''}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  
+                  {/* Overlay chunk count badge */}
+                  <div style={{
+                    position: 'absolute', bottom: 8, right: 8,
+                    background: 'rgba(0,0,0,0.7)', color: 'white',
+                    fontSize: 10, padding: '2px 6px', borderRadius: 4, fontWeight: 600,
+                    backdropFilter: 'blur(4px)'
+                  }}>
                     {info.chunkCount} chunk{info.chunkCount !== 1 ? 's' : ''}
                   </div>
                 </div>

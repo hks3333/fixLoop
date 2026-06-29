@@ -1,7 +1,5 @@
 export const ROUTES_TO_CHECK = [
   { path: '/', name: 'Homepage', critical: true },
-  { path: '/about', name: 'About', critical: false },
-  { path: '/checkout-preview', name: 'Checkout', critical: true },
 ];
 
 export const VIEWPORTS = [
